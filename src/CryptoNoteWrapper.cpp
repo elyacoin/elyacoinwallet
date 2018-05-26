@@ -397,6 +397,14 @@ public:
         }
   }
 
+  CryptoNote::BlockHeaderInfo getLastLocalBlockHeaderInfo() {
+    return m_node.getLastLocalBlockHeaderInfo();
+  }
+
+  uint8_t getCurrentBlockMajorVersion() {
+    return getLastLocalBlockHeaderInfo().majorVersion;
+  }
+
   CryptoNote::IWalletLegacy* createWallet() override {
     return new CryptoNote::WalletLegacy(m_currency, m_node, m_logManager);
   }
@@ -434,13 +442,15 @@ public:
     m_core(currency, &m_protocolHandler, logManager, true),
     m_nodeServer(m_dispatcher, m_protocolHandler, logManager),
     m_node(m_core, m_protocolHandler) {
-
-    m_core.set_cryptonote_protocol(&m_protocolHandler);
-    m_protocolHandler.set_p2p_endpoint(&m_nodeServer);
-    CryptoNote::Checkpoints checkpoints(logManager);
-    for (const CryptoNote::CheckpointData& checkpoint : CryptoNote::CHECKPOINTS) {
-      checkpoints.add_checkpoint(checkpoint.height, checkpoint.blockId);
-    }
+       CryptoNote::Checkpoints checkpoints(logManager);
+       for (const CryptoNote::CheckpointData& checkpoint : CryptoNote::CHECKPOINTS) {
+          checkpoints.add_checkpoint(checkpoint.height, checkpoint.blockId);
+       }
+       if (!Settings::instance().isTestnet()) {
+           m_core.set_checkpoints(std::move(checkpoints));
+       }
+       m_core.set_cryptonote_protocol(&m_protocolHandler);
+       m_protocolHandler.set_p2p_endpoint(&m_nodeServer);
   }
 
   ~InprocessNode() override {
@@ -548,6 +558,14 @@ public:
 
   uint64_t getGreyPeerlistSize() {
     return m_nodeServer.getPeerlistManager().get_gray_peers_count();
+  }
+
+  CryptoNote::BlockHeaderInfo getLastLocalBlockHeaderInfo() {
+    return m_node.getLastLocalBlockHeaderInfo();
+  }
+
+  uint8_t getCurrentBlockMajorVersion() {
+    return getLastLocalBlockHeaderInfo().majorVersion;
   }
 
   CryptoNote::IWalletLegacy* createWallet() override {
